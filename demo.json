@@ -1,0 +1,50 @@
+{
+   "data": [
+        {
+          "id": 1,
+          "title": "Simple Questions:",
+          "data": [
+            {
+              "id": 11,
+              "question": "What is your favorite color?",
+              "options": ["Red", "Blue", "Green", "Yellow"],
+              "selectedOptions": [false, false, false, false]
+            },
+            {
+              "id": 12,
+              "question": "Which animal do you like the most?",
+              "options": ["Dog", "Cat", "Bird", "Fish"],
+              "selectedOptions": [false, false, false, false]
+            }
+          
+          ]
+        },
+        {
+          "id": 2,
+          "title": "Complex Questions:",
+          "data": [
+            {
+              "id": 21,
+              "question": "How often do you exercise?",
+              "options": ["Every day", "2-3 times a week", "Once a week", "Rarely"],
+              "selectedOptions": [false, false, false, false]
+            },
+            {
+              "id": 22,
+              "question": "What is your favorite movie genre?",
+              "options": ["Action", "Comedy", "Drama", "Science Fiction"],
+              "selectedOptions": [false, false, false, false]
+            }
+          
+        ]
+        },
+        {
+          "id": 3,
+          "title": "Second Section:",
+          "data": [
+          
+          ]
+        }
+      ]
+      
+}
