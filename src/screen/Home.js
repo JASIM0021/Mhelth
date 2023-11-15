@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useContext, useCallback } from "react";
-import { StyleSheet, Text, View, Button, Image, Alert } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  View,
+  Button,
+  Image,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
 import { Camera } from "expo-camera";
 import { Video } from "expo-av";
 import { StatusBar } from "expo-status-bar";
@@ -10,92 +18,91 @@ import GlobalContext from "../../context/GlobalContext";
 import { useMyContext } from "../../context/GlobalContextProvider";
 import axios from "axios";
 
-
-import * as MediaLibrary from 'expo-media-library';
+import * as MediaLibrary from "expo-media-library";
 export default function Home() {
-  const { isSubmited, record, setRecord,ans ,setIsSubmited} = useMyContext();
-// const [record, setRecord] = useState(null);
-const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
+  const {
+    isSubmited,
+    record,
+    setRecord,
+    ans,
+    setIsSubmited,
+    loader,
+    setLoader,
+  } = useMyContext();
+  // const [record, setRecord] = useState(null);
+  const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
 
   const [hasAudioPermission, setHasAudioPermission] = useState(null);
   const [hasCameraPermission, setHasCameraPermission] = useState(null);
   const [camera, setCamera] = useState(null);
- 
+  const [isRecording, setIsRecording] = useState(false);
   const [type, setType] = useState(Camera.Constants.Type.back);
   const video = React.useRef(null);
   const [status, setStatus] = React.useState({});
 
   useEffect(() => {
-  
-   
- 
-   
     (async () => {
-      
-     
       const cameraStatus = await Camera.requestCameraPermissionsAsync();
       setHasCameraPermission(cameraStatus.status === "granted");
 
       const audioStatus = await Camera.requestMicrophonePermissionsAsync();
       setHasAudioPermission(audioStatus.status === "granted");
-      requestPermission()
-    
+      if (
+        cameraStatus.status === "granted" &&
+        audioStatus.status === "granted"
+      ) {
+        // Start recording when permissions are granted
+      }
+      requestPermission();
     })();
 
+    setIsSubmited(false);
+  }, []);
 
-  setIsSubmited(false)
-  }, [camera]);
-
-
-  
-
-
-
- 
- 
-
-
-  
-console.log(isSubmited,'isSubmited');
+  console.log(isSubmited, "isSubmited");
   const takeVideo = async () => {
+    console.log("call take video");
+    // setIsSubmited(false);
+
     if (camera) {
       const data = await camera.recordAsync({
         // maxDuration: 10,
       });
-   
+      setIsRecording(true);
+
       const asset = await MediaLibrary.createAssetAsync(data?.uri);
-      console.log('asset', asset)
-      setRecord(data.uri);
-      console.log(data.uri);
+      console.log("asset", asset);
+      console.log("data.uri", data.uri);
+
+      setRecord(asset);
     }
   };
 
   const stopVideo = async () => {
-   
-   if(camera){
-    try {
-      camera.stopRecording()
-    } catch (error) {
-      console.log('error', error)
+    if (camera) {
+      try {
+        await camera.stopRecording();
+      } catch (error) {
+        console.log("error", error);
+      }
     }
-   }
-    
   };
-  useEffect(()=>{if(isSubmited){
-    stopVideo()
-  }},[isSubmited])
+  useEffect(() => {
+    if (isSubmited) {
+      stopVideo();
+    }
+  }, [isSubmited]);
 
   if (hasCameraPermission === null || hasAudioPermission === null) {
-    return <View />;
+    return <Text>No access to camera</Text>;
   }
   if (hasCameraPermission === false || hasAudioPermission === false) {
     return <Text>No access to camera</Text>;
   }
 
-
   return (
     <View style={{ flex: 1 }}>
-      {false  ? (
+      {false ? (
         <>
           <Video
             ref={video}
@@ -104,7 +111,7 @@ console.log(isSubmited,'isSubmited');
               uri: record,
             }}
             useNativeControls
-            resizeMode="contain"
+            resizeMode='contain'
             isLooping
             onPlaybackStatusUpdate={(status) => setStatus(() => status)}
           />
@@ -128,7 +135,7 @@ console.log(isSubmited,'isSubmited');
               style={styles.fixedRatio}
               type={type}
               ratio={"16:9"}
-              onCameraReady={ takeVideo}
+              onCameraReady={() => takeVideo()}
             />
           </View>
 
@@ -136,7 +143,7 @@ console.log(isSubmited,'isSubmited');
             {false && (
               <>
                 <Button
-                  title="Flip Video"
+                  title='Flip Video'
                   onPress={() => {
                     setType(
                       type === Camera.Constants.Type.back
@@ -145,25 +152,40 @@ console.log(isSubmited,'isSubmited');
                     );
                   }}
                 ></Button>
-                <Button title="Take video" onPress={() => takeVideo()} />
-                <Button title="Stop Video" onPress={() => stopVideo()} />
+                <Button title='Take video' onPress={() => takeVideo()} />
+                <Button title='Stop Video' onPress={() => stopVideo()} />
               </>
             )}
           </View>
         </>
-      )} 
-
-      <View style={{ flex: 0.5 }}>
-        {/* <WebView
+      )}
+      {loader ? (
+        <View
+          style={{
+            justifyContent: "center",
+            alignItems: "center",
+            flex: 1,
+          }}
+        >
+          <ActivityIndicator color={"blue"} size={25} />
+          <Text>
+            Uploading.... {"\n"} please keep hold your phone internet connection{" "}
+          </Text>
+        </View>
+      ) : (
+        <View style={{ flex: 0.5 }}>
+          {/* <Button title='Take video' onPress={() => takeVideo()} /> */}
+          {/* <WebView
       style={{
         flex: 1,
         marginTop: Constants.statusBarHeight,
       }}
       source={{ uri: 'https://github.com/jasim0021' }}
     /> */}
-     {/* <Button title="Take video" onPress={() => takeVideo()} /> */}
-        <GoogleForm/>
-      </View>
+          {/* <Button title="Take video" onPress={() => takeVideo()} /> */}
+          <GoogleForm />
+        </View>
+      )}
     </View>
   );
 }

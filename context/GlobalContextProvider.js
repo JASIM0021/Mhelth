@@ -5,8 +5,11 @@ import * as MediaLibrary from "expo-media-library";
 const MyProvider = ({ children }) => {
   const [isSubmited, setIsSubmited] = useState(false);
   const [image, setImage] = useState({});
-  const [record, setRecord] = useState(null);
+  const [record, setRecord] = useState({});
   const [ans, setAns] = useState([]);
+  const [loader, setLoader] = useState(false);
+
+  
   //   const isSubmitedListener = async () => {
 
   //     console.log("Api Calling ...")
@@ -103,6 +106,8 @@ const MyProvider = ({ children }) => {
         ans,
         setAns,
         isSubmitedListener,
+        loader,
+        setLoader,
       }}
     >
       {children}

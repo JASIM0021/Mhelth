@@ -1,22 +1,24 @@
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { View, Text, ScrollView, Button } from "react-native";
 import { CheckBox } from "react-native-elements";
 import NavigationString from "../constant/NavigationString";
 import { useMyContext } from "../../context/GlobalContextProvider";
 import * as MediaLibrary from "expo-media-library";
-import RNFetchBlob from "rn-fetch-blob";
+// import RNFetchBlob from "rn-fetch-blob";
 
 const GoogleForm = () => {
   const [formResponses, setFormResponses] = useState([]);
   const [questions, setQuestions] = useState([]);
-  const { ans, setAns, setIsSubmited, record } = useMyContext();
+  const { ans, setAns, setIsSubmited, record, loader, setLoader } =
+    useMyContext();
   const [image, setImage] = useState({});
+  const formData = new FormData();
   const getQuestion = async () => {
     await axios.get("http://15.206.166.191/question").then((response) => {
       setQuestions(response?.data?.data);
-      // console.log("response?.data", response?.data?.data);
+      console.log("response?.data", response?.data?.data);
     });
   };
   // console.log("questions", questions);
@@ -132,54 +134,78 @@ const GoogleForm = () => {
 
   const isSubmitedListener = async () => {
     console.log("record", record);
-    const asset = await MediaLibrary.createAssetAsync(`${record}`)
+    // const asset = await MediaLibrary.createAssetAsync(record)
+    console.log("Uploading....");
+    // await ReactNativeBlobUtil.fetch(
+    //   "POST",
+    //   "http://15.206.166.191/upload",
+    //   {
+    //     "Content-Type": "multipart/form-data",
+    //     Connection: "keep-alive",
+    //   }[
+    //     // // element with property `filename` will be transformed into `file` in form data
+    //     // { name: "image", filename: asset.filename, data: asset.uri },
+    //     // // custom content type
+    //     // {
+    //     //   name: "image",
+    //     //   filename: "avatar-png.mp4",
+    //     //   type: "image/video",
+    //     //   data: ReactNativeBlobUtil.wrap(record),
+    //     // }
+    //     // part file from storage
+    //     // {
+    //     //   name: "image",
+    //     //   filename: record?.filename || "myfile",
+    //     //   type: record?.mediaType,
+    //     //   data: ReactNativeBlobUtil.wrap(record?.uri),
+    //     // },
+    //     // elements without property `filename` will be sent as plain text
+    //     { data: "data" }
+    //     // {
+    //     //   name: "info",
+    //     //   data: JSON.stringify({
+    //     //     mail: "example@example.com",
+    //     //     tel: "12345678",
+    //     //   }),
+    //     // },
+    //   ]
+    // )
+    // const asset = await MediaLibrary.createAssetAsync(record);
+    const config = {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    };
+    let filename = record?.filename?.split("/").pop();
+    console.log("filename", filename);
+    const foormImage = {
+      uri: record?.uri,
+      type: "image/video", // Adjust the MIME type according to your file type
+      name: filename, // Set the desired file name here
+    };
+    formData.append("image", foormImage);
 
-      .then((asset) => {
-        RNFetchBlob.fetch(
-          "POST",
-          "http://15.206.166.191/upload",
-          {
-            otherHeader: "foo",
-            "Content-Type": "multipart/form-data",
-          },
-          [
-            // // element with property `filename` will be transformed into `file` in form data
-            // { name: "image", filename: asset.filename, data: asset.uri },
-            // // custom content type
-            // {
-            //   name: "avatar-png",
-            //   filename: "avatar-png.png",
-            //   type: "image/png",
-            //   data: binaryDataInBase64,
-            // },
-            // part file from storage
-            {
-              name: "image",
-              filename: asset?.filename || "myfile",
-              type: asset.mediaType,
-              data: RNFetchBlob.wrap(asset.uri),
-            },
-            // elements without property `filename` will be sent as plain text
-            { name: "data", data: "user" },
-            // {
-            //   name: "info",
-            //   data: JSON.stringify({
-            //     mail: "example@example.com",
-            //     tel: "12345678",
-            //   }),
-            // },
-          ]
-        )
-          .then((resp) => {
-            console.log("resp", resp);
-          })
-          .catch((err) => {
-            console.log("err", err);
-          });
+    formData.append(
+      "data",
+      JSON.stringify({
+        data: ans,
+      })
+    );
+    setLoader(true);
+    const response = await axios
+      .post("http://15.206.166.191/upload", formData, config)
+      .then((resp) => {
+        console.warn("resp", resp?.data);
+        navigation.navigate(NavigationString.Thankyou);
       })
       .catch((err) => {
-        console.log("error creating asset", err);
+        console.warn("err", err);
+        alert("somthing went wrong please try again after sometime");
+        setLoader(false);
       });
+
+    console.log("Uploaded...", response);
+    setLoader(false);
   };
   const handleCheckBoxChange = (titleId, questionId, optionIndex) => {
     setQuestions((prevQuestions) => {
@@ -226,6 +252,7 @@ const GoogleForm = () => {
   // };
   const navigation = useNavigation();
   const handleSubmit = async () => {
+    if (!record) return;
     // Create an array of objects to store user responses in the desired format
     const formattedResponses = questions.map((questionGroup) => {
       return {
@@ -247,7 +274,7 @@ const GoogleForm = () => {
 
     // Navigate to the 'Thankyou' screen
     // navigation.navigate(NavigationString.Thankyou);
-    isSubmitedListener();
+    await isSubmitedListener();
   };
 
   useEffect(() => {
@@ -299,7 +326,7 @@ const GoogleForm = () => {
           ))}
         </View>
       ))}
-      <Button title='Submit' onPress={handleSubmit} />
+      <Button title='Submit' onPress={() => handleSubmit()} />
     </ScrollView>
   );
 };
