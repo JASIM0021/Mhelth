@@ -28,6 +28,8 @@ export default function Home() {
     setIsSubmited,
     loader,
     setLoader,
+    startRecord,
+    setStartRecord,
   } = useMyContext();
   // const [record, setRecord] = useState(null);
   const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
@@ -57,41 +59,74 @@ export default function Home() {
     })();
 
     setIsSubmited(false);
+    setStartRecord(false);
+    setLoader(false);
   }, []);
 
   console.log(isSubmited, "isSubmited");
   const takeVideo = async () => {
+    setStartRecord(true);
+
     console.log("call take video");
     // setIsSubmited(false);
 
     if (camera) {
       const data = await camera.recordAsync({
-        // maxDuration: 10,
+        maxDuration: 10,
+        
       });
-      setIsRecording(true);
 
       const asset = await MediaLibrary.createAssetAsync(data?.uri);
       console.log("asset", asset);
-      console.log("data.uri", data.uri);
-
       setRecord(asset);
+      console.log("data.uri", data.uri);
     }
   };
+  // const takeVideo = useCallback(async () => {
+  //   setStartRecord();
+  //   if (camera) {
+  //     const data = await camera.recordAsync({
+  //       // maxDuration: 10,
+  //     });
+  //     setIsRecording(true);
+
+  //     const asset = await MediaLibrary.createAssetAsync(data?.uri);
+  //     console.log("asset", asset);
+  //     console.log("data.uri", data.uri);
+
+  //     setRecord(asset);
+  //   }
+  // }, [camera]); // Add dependencies that
 
   const stopVideo = async () => {
     if (camera) {
       try {
-        await camera.stopRecording();
+        camera.stopRecording();
       } catch (error) {
         console.log("error", error);
       }
     }
   };
-  useEffect(() => {
-    if (isSubmited) {
-      stopVideo();
-    }
-  }, [isSubmited]);
+  // const stopVideo = async () => {
+  //   if (camera) {
+  //     try {
+  //       const data = await camera.stopRecording();
+  //       const asset = await MediaLibrary.createAssetAsync(data?.uri);
+  //       console.log("stopasset", asset);
+  //       console.log("asset", asset);
+  //       console.log("data.uri", data.uri);
+  //       setRecord(asset);
+  //     } catch (error) {
+  //       console.log("error", error);
+  //     }
+  //   }
+  // };
+
+  // useEffect(() => {
+  //   if (isSubmited) {
+  //     stopVideo();
+  //   }
+  // }, [isSubmited]);
 
   if (hasCameraPermission === null || hasAudioPermission === null) {
     return <Text>No access to camera</Text>;
@@ -110,6 +145,8 @@ export default function Home() {
             source={{
               uri: record,
             }}
+            maxDuration={10}
+            quality={0.5}
             useNativeControls
             resizeMode='contain'
             isLooping
@@ -134,8 +171,8 @@ export default function Home() {
               ref={(ref) => setCamera(ref)}
               style={styles.fixedRatio}
               type={type}
-              ratio={"16:9"}
-              onCameraReady={() => takeVideo()}
+              ratio={"4:3"}
+              // onCameraReady={() => takeVideo()}
             />
           </View>
 
@@ -159,7 +196,19 @@ export default function Home() {
           </View>
         </>
       )}
-      {loader ? (
+      {!startRecord ? (
+        <>
+          <View
+            style={{
+              justifyContent: "center",
+              alignItems: "center",
+              flex: 1,
+            }}
+          >
+            <Button title='Start Survey' onPress={() => takeVideo()} />
+          </View>
+        </>
+      ) : loader ? (
         <View
           style={{
             justifyContent: "center",
@@ -168,9 +217,7 @@ export default function Home() {
           }}
         >
           <ActivityIndicator color={"blue"} size={25} />
-          <Text>
-            Uploading.... {"\n"} please keep hold your phone internet connection{" "}
-          </Text>
+          <Text>Uploading.... {"\n"} please keep hold your phone</Text>
         </View>
       ) : (
         <View style={{ flex: 0.5 }}>
@@ -183,7 +230,7 @@ export default function Home() {
       source={{ uri: 'https://github.com/jasim0021' }}
     /> */}
           {/* <Button title="Take video" onPress={() => takeVideo()} /> */}
-          <GoogleForm />
+          <GoogleForm onSubmit={stopVideo} />
         </View>
       )}
     </View>

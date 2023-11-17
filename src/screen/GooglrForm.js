@@ -1,25 +1,28 @@
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
-import React, { useCallback, useEffect, useState } from "react";
-import { View, Text, ScrollView, Button } from "react-native";
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { View, Text, ScrollView, Button, Alert } from "react-native";
 import { CheckBox } from "react-native-elements";
 import NavigationString from "../constant/NavigationString";
 import { useMyContext } from "../../context/GlobalContextProvider";
 import * as MediaLibrary from "expo-media-library";
 // import RNFetchBlob from "rn-fetch-blob";
 
-const GoogleForm = () => {
+const GoogleForm = ({ onSubmit }) => {
   const [formResponses, setFormResponses] = useState([]);
   const [questions, setQuestions] = useState([]);
-  const { ans, setAns, setIsSubmited, record, loader, setLoader } =
+  const { ans, setAns, setIsSubmited, record, loader, setLoader, setRecord } =
     useMyContext();
   const [image, setImage] = useState({});
   const formData = new FormData();
   const getQuestion = async () => {
+    // setLoader(true);
     await axios.get("http://15.206.166.191/question").then((response) => {
       setQuestions(response?.data?.data);
       console.log("response?.data", response?.data?.data);
+      setLoader(false);
     });
+    // setLoader(false);
   };
   // console.log("questions", questions);
 
@@ -136,48 +139,15 @@ const GoogleForm = () => {
     console.log("record", record);
     // const asset = await MediaLibrary.createAssetAsync(record)
     console.log("Uploading....");
-    // await ReactNativeBlobUtil.fetch(
-    //   "POST",
-    //   "http://15.206.166.191/upload",
-    //   {
-    //     "Content-Type": "multipart/form-data",
-    //     Connection: "keep-alive",
-    //   }[
-    //     // // element with property `filename` will be transformed into `file` in form data
-    //     // { name: "image", filename: asset.filename, data: asset.uri },
-    //     // // custom content type
-    //     // {
-    //     //   name: "image",
-    //     //   filename: "avatar-png.mp4",
-    //     //   type: "image/video",
-    //     //   data: ReactNativeBlobUtil.wrap(record),
-    //     // }
-    //     // part file from storage
-    //     // {
-    //     //   name: "image",
-    //     //   filename: record?.filename || "myfile",
-    //     //   type: record?.mediaType,
-    //     //   data: ReactNativeBlobUtil.wrap(record?.uri),
-    //     // },
-    //     // elements without property `filename` will be sent as plain text
-    //     { data: "data" }
-    //     // {
-    //     //   name: "info",
-    //     //   data: JSON.stringify({
-    //     //     mail: "example@example.com",
-    //     //     tel: "12345678",
-    //     //   }),
-    //     // },
-    //   ]
-    // )
-    // const asset = await MediaLibrary.createAssetAsync(record);
+
+    console.log("record", record);
     const config = {
       headers: {
         "Content-Type": "multipart/form-data",
       },
     };
     let filename = record?.filename?.split("/").pop();
-    console.log("filename", filename);
+    console.log("filename", filename, record?.uri);
     const foormImage = {
       uri: record?.uri,
       type: "image/video", // Adjust the MIME type according to your file type
@@ -200,11 +170,25 @@ const GoogleForm = () => {
       })
       .catch((err) => {
         console.warn("err", err);
-        alert("somthing went wrong please try again after sometime");
         setLoader(false);
+
+        Alert.alert(
+          "Something went wrong",
+          "Please try again",
+          [
+            {
+              text: "Retry",
+              onPress: () => {
+                // Call your function here when "Retry" is pressed
+                handleSubmit();
+              },
+            },
+          ],
+          { cancelable: false }
+        );
       });
 
-    console.log("Uploaded...", response);
+    // console.log("Uploaded...", response);
     setLoader(false);
   };
   const handleCheckBoxChange = (titleId, questionId, optionIndex) => {
@@ -252,7 +236,11 @@ const GoogleForm = () => {
   // };
   const navigation = useNavigation();
   const handleSubmit = async () => {
-    if (!record) return;
+    onSubmit();
+    setLoader(true);
+    // if (!record) {
+    //   return;
+    // }
     // Create an array of objects to store user responses in the desired format
     const formattedResponses = questions.map((questionGroup) => {
       return {
@@ -274,16 +262,48 @@ const GoogleForm = () => {
 
     // Navigate to the 'Thankyou' screen
     // navigation.navigate(NavigationString.Thankyou);
-    await isSubmitedListener();
+    setTimeout(() => {
+      isSubmitedListener();
+    }, 10000);
   };
 
-  useEffect(() => {
+  useMemo(() => {
     getQuestion();
   }, []);
+
+  const [timer, setTimer] = useState(300); // 5 minutes in seconds
+  const [timerActive, setTimerActive] = useState(true);
+
+  // Function to format seconds into minutes:seconds
+  const formatTime = (timeInSeconds) => {
+    const minutes = Math.floor(timeInSeconds / 60);
+    const seconds = timeInSeconds % 60;
+    return `${minutes.toString().padStart(2, "0")}:${seconds
+      .toString()
+      .padStart(2, "0")}`;
+  };
+
+  // Countdown timer logic
+  useEffect(() => {
+    if (timerActive && timer > 0) {
+      const intervalId = setInterval(() => {
+        setTimer((prevTimer) => prevTimer - 1);
+      }, 1000);
+
+      return () => clearInterval(intervalId);
+    } else if (timer === 0 && timerActive) {
+      // Automatically hit the submit button after 5 minutes
+      handleCheckBoxChange();
+      setTimerActive(false);
+    }
+  }, [timer, timerActive, onSubmit]);
   return (
     <ScrollView
       contentContainerStyle={{ paddingVertical: 40, paddingHorizontal: 10 }}
     >
+      <View style={{ position: "absolute", top: 20, right: 20 }}>
+        <Text>{formatTime(timer)}</Text>
+      </View>
       {questions.map((questionGroup) => (
         <View key={questionGroup.id}>
           <Text style={{ fontSize: 30, fontWeight: "bold" }}>
@@ -326,9 +346,12 @@ const GoogleForm = () => {
           ))}
         </View>
       ))}
-      <Button title='Submit' onPress={() => handleSubmit()} />
+      <Button
+        title={`Submit ${formatTime(timer)}`}
+        onPress={() => handleSubmit()}
+      />
     </ScrollView>
   );
 };
 
-export default GoogleForm;
+export default memo(GoogleForm);
