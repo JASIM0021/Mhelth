@@ -72,8 +72,7 @@ export default function Home() {
 
     if (camera) {
       const data = await camera.recordAsync({
-        maxDuration: 10,
-        
+        maxDuration: 300,
       });
 
       const asset = await MediaLibrary.createAssetAsync(data?.uri);
@@ -127,7 +126,31 @@ export default function Home() {
   //     stopVideo();
   //   }
   // }, [isSubmited]);
+  // Countdown timer logic
+  const [timer, setTimer] = useState(300); // 5 minutes in seconds
+  const [timerActive, setTimerActive] = useState(true);
 
+  // Function to format seconds into minutes:seconds
+  const formatTime = (timeInSeconds) => {
+    const minutes = Math.floor(timeInSeconds / 60);
+    const seconds = timeInSeconds % 60;
+    return `${minutes.toString().padStart(2, "0")}:${seconds
+      .toString()
+      .padStart(2, "0")}`;
+  };
+  useEffect(() => {
+    if (timerActive && timer > 0) {
+      const intervalId = setInterval(() => {
+        setTimer((prevTimer) => prevTimer - 1);
+      }, 1000);
+
+      return () => clearInterval(intervalId);
+    } else if (timer === 0 && timerActive) {
+      // Automatically hit the submit button after 5 minutes
+      handleCheckBoxChange();
+      setTimerActive(false);
+    }
+  }, [timer, timerActive]);
   if (hasCameraPermission === null || hasAudioPermission === null) {
     return <Text>No access to camera</Text>;
   }
@@ -221,6 +244,9 @@ export default function Home() {
         </View>
       ) : (
         <View style={{ flex: 0.5 }}>
+          <View style={{ position: "absolute", top: 20, right: 20 }}>
+            <Text>{formatTime(timer)}</Text>
+          </View>
           {/* <Button title='Take video' onPress={() => takeVideo()} /> */}
           {/* <WebView
       style={{

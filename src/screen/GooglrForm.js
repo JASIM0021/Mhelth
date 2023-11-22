@@ -264,7 +264,7 @@ const GoogleForm = ({ onSubmit }) => {
     // navigation.navigate(NavigationString.Thankyou);
     setTimeout(() => {
       isSubmitedListener();
-    }, 10000);
+    }, 15000);
   };
 
   useMemo(() => {
@@ -301,9 +301,9 @@ const GoogleForm = ({ onSubmit }) => {
     <ScrollView
       contentContainerStyle={{ paddingVertical: 40, paddingHorizontal: 10 }}
     >
-      <View style={{ position: "absolute", top: 20, right: 20 }}>
+      {/* <View style={{ position: "absolute", top: 20, right: 20 }}>
         <Text>{formatTime(timer)}</Text>
-      </View>
+      </View> */}
       {questions.map((questionGroup) => (
         <View key={questionGroup.id}>
           <Text style={{ fontSize: 30, fontWeight: "bold" }}>
