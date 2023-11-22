@@ -183,8 +183,15 @@ const GoogleForm = ({ onSubmit }) => {
                 handleSubmit();
               },
             },
+            {
+              text: "Cancel",
+              onPress: () => {
+                // Call your function here when "Retry" is pressed
+                handleSubmit();
+              },
+            },
           ],
-          { cancelable: false }
+          { cancelable: true }
         );
       });
 
