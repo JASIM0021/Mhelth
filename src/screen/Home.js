@@ -198,25 +198,6 @@ export default function Home() {
               // onCameraReady={() => takeVideo()}
             />
           </View>
-
-          <View style={styles.buttons}>
-            {false && (
-              <>
-                <Button
-                  title='Flip Video'
-                  onPress={() => {
-                    setType(
-                      type === Camera.Constants.Type.back
-                        ? Camera.Constants.Type.front
-                        : Camera.Constants.Type.back
-                    );
-                  }}
-                ></Button>
-                <Button title='Take video' onPress={() => takeVideo()} />
-                <Button title='Stop Video' onPress={() => stopVideo()} />
-              </>
-            )}
-          </View>
         </>
       )}
       {!startRecord ? (
@@ -244,8 +225,15 @@ export default function Home() {
         </View>
       ) : (
         <View style={{ flex: 0.5 }}>
-          <View style={{ position: "absolute", top: 20, right: 20 }}>
-            <Text>{formatTime(timer)}</Text>
+          <View style={{ position: "absolute", top: -45, right: 20 }}>
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: "bold",
+              }}
+            >
+              {formatTime(timer)}
+            </Text>
           </View>
           {/* <Button title='Take video' onPress={() => takeVideo()} /> */}
           {/* <WebView
