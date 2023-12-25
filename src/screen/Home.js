@@ -19,6 +19,9 @@ import { useMyContext } from "../../context/GlobalContextProvider";
 import axios from "axios";
 
 import * as MediaLibrary from "expo-media-library";
+import { useNavigation } from "@react-navigation/native";
+import { formatTime } from "../helper/FormatTime";
+import NavigationString from "../constant/NavigationString";
 export default function Home() {
   const {
     isSubmited,
@@ -30,6 +33,7 @@ export default function Home() {
     setLoader,
     startRecord,
     setStartRecord,
+    timer
   } = useMyContext();
   // const [record, setRecord] = useState(null);
   const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
@@ -41,7 +45,8 @@ export default function Home() {
   const [type, setType] = useState(Camera.Constants.Type.back);
   const video = React.useRef(null);
   const [status, setStatus] = React.useState({});
-
+  const formData = new FormData();
+  const navigation = useNavigation()
   useEffect(() => {
     (async () => {
       const cameraStatus = await Camera.requestCameraPermissionsAsync();
@@ -63,7 +68,7 @@ export default function Home() {
     setLoader(false);
   }, []);
 
-  console.log(isSubmited, "isSubmited");
+  // console.log(isSubmited, "isSubmited");
   const takeVideo = async () => {
     setStartRecord(true);
 
@@ -71,15 +76,94 @@ export default function Home() {
     // setIsSubmited(false);
 
     if (camera) {
-      const data = await camera.recordAsync({
-        maxDuration: 300,
-      });
+      const maxDurationSeconds = 300; // Maximum duration in seconds (5 minutes)
+  const maxFileSizeMB = 30; // Maximum file size in MB
 
-      const asset = await MediaLibrary.createAssetAsync(data?.uri);
-      console.log("asset", asset);
+  // Calculate target video bitrate based on maximum file size
+  const maxBitrate = (maxFileSizeMB * 1024 * 1024) / maxDurationSeconds; // in bits per second
+  const data = await camera.recordAsync({
+    maxDuration: maxDurationSeconds,
+    
+    quality: Camera.Constants.VideoQuality['480'], // Adjust the resolution as needed
+    videoBitrate: maxBitrate > 0 ? Math.min(maxBitrate, 10000000) : undefined, // Adjust the maximum bitrate
+  });
+
+    const asset = await MediaLibrary.createAssetAsync(data?.uri)
+     
       setRecord(asset);
+      isSubmitedListener(record)
       console.log("data.uri", data.uri);
     }
+  }
+
+  useCallback(()=>{isSubmitedListener(record)},[record])
+
+  const isSubmitedListener = async (record) => {
+  
+    console.log("record", record);
+    // const asset = await MediaLibrary.createAssetAsync(record)
+    console.log("Uploading....");
+
+    console.log("record", record);
+    const config = {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    };
+    let filename = record?.filename?.split("/").pop();
+    console.log("filename", filename, record?.uri);
+    // const foormImage = {
+    //   uri: record?.uri,
+    //   type: "image/video", // Adjust the MIME type according to your file type
+    //   name: filename, // Set the desired file name here
+    // };
+    // formData.append("image", foormImage);
+
+    formData.append(
+      "data",ans
+    
+    );
+
+    // console,log(formData,"formData")
+    
+
+    setLoader(true);
+    const response = await axios
+      .post("http://15.206.166.191/upload", formData, config)
+      .then((resp) => {
+        console.warn("resp", resp?.data);
+        navigation.navigate(NavigationString.Thankyou);
+      })
+      .catch((err) => {
+        console.warn("err", err);
+        setLoader(false);
+
+        Alert.alert(
+          "Something went wrong",
+          "Please try again",
+          [
+            {
+              text: "Retry",
+              onPress: () => {
+                // Call your function here when "Retry" is pressed
+                // handleSubmit();s
+              },
+            },
+            {
+              text: "Cancel",
+              onPress: () => {
+                // Call your function here when "Retry" is pressed
+                // handleSubmit();
+                return 
+              },
+            },
+          ],
+          { cancelable: true }
+        );
+      });
+
+    // console.log("Uploaded...", response);
+    setLoader(false);
   };
   // const takeVideo = useCallback(async () => {
   //   setStartRecord();
@@ -97,60 +181,41 @@ export default function Home() {
   //   }
   // }, [camera]); // Add dependencies that
 
-  const stopVideo = async () => {
-    if (camera) {
-      try {
-        camera.stopRecording();
-      } catch (error) {
-        console.log("error", error);
-      }
-    }
-  };
   // const stopVideo = async () => {
   //   if (camera) {
   //     try {
-  //       const data = await camera.stopRecording();
-  //       const asset = await MediaLibrary.createAssetAsync(data?.uri);
-  //       console.log("stopasset", asset);
-  //       console.log("asset", asset);
-  //       console.log("data.uri", data.uri);
-  //       setRecord(asset);
+  //      const video = await camera.stopRecording();
+  //     //  console.warn(video,"video")
   //     } catch (error) {
   //       console.log("error", error);
   //     }
   //   }
   // };
-
-  // useEffect(() => {
-  //   if (isSubmited) {
-  //     stopVideo();
-  //   }
-  // }, [isSubmited]);
-  // Countdown timer logic
-  const [timer, setTimer] = useState(300); // 5 minutes in seconds
-  const [timerActive, setTimerActive] = useState(true);
-
-  // Function to format seconds into minutes:seconds
-  const formatTime = (timeInSeconds) => {
-    const minutes = Math.floor(timeInSeconds / 60);
-    const seconds = timeInSeconds % 60;
-    return `${minutes.toString().padStart(2, "0")}:${seconds
-      .toString()
-      .padStart(2, "0")}`;
-  };
-  useEffect(() => {
-    if (timerActive && timer > 0) {
-      const intervalId = setInterval(() => {
-        setTimer((prevTimer) => prevTimer - 1);
-      }, 1000);
-
-      return () => clearInterval(intervalId);
-    } else if (timer === 0 && timerActive) {
-      // Automatically hit the submit button after 5 minutes
-      handleCheckBoxChange();
-      setTimerActive(false);
+  const stopVideo = async () => {
+    if (camera) {
+      try {
+        const data = await camera.stopRecording();
+        const asset = await MediaLibrary.createAssetAsync(data?.uri);
+        console.log("stopasset", asset);
+        console.log("asset", asset);
+        console.log("data.uri", data.uri);
+        setRecord(asset);
+      } catch (error) {
+        console.log("error", error);
+      }
     }
-  }, [timer, timerActive]);
+  };
+
+  useEffect(() => {
+    if (isSubmited) {
+      stopVideo();
+    }
+  }, [isSubmited]);
+  // Countdown timer logic
+
+
+
+ 
   if (hasCameraPermission === null || hasAudioPermission === null) {
     return <Text>No access to camera</Text>;
   }
@@ -194,7 +259,7 @@ export default function Home() {
               ref={(ref) => setCamera(ref)}
               style={styles.fixedRatio}
               type={type}
-              ratio={"4:3"}
+              ratio={'1:1'}
               // onCameraReady={() => takeVideo()}
             />
           </View>

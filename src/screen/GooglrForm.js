@@ -6,12 +6,13 @@ import { CheckBox } from "react-native-elements";
 import NavigationString from "../constant/NavigationString";
 import { useMyContext } from "../../context/GlobalContextProvider";
 import * as MediaLibrary from "expo-media-library";
+import { formatTime } from "../helper/FormatTime";
 // import RNFetchBlob from "rn-fetch-blob";
 
 const GoogleForm = ({ onSubmit }) => {
   const [formResponses, setFormResponses] = useState([]);
   const [questions, setQuestions] = useState([]);
-  const { ans, setAns, setIsSubmited, record, loader, setLoader, setRecord } =
+  const { ans, setAns, setIsSubmited, record, loader, setLoader, setRecord,timerActive, setTimerActive,  timer, setTimer } =
     useMyContext();
   const [image, setImage] = useState({});
   const formData = new FormData();
@@ -187,7 +188,8 @@ const GoogleForm = ({ onSubmit }) => {
               text: "Cancel",
               onPress: () => {
                 // Call your function here when "Retry" is pressed
-                handleSubmit();
+                // handleSubmit();
+                return 
               },
             },
           ],
@@ -243,8 +245,8 @@ const GoogleForm = ({ onSubmit }) => {
   // };
   const navigation = useNavigation();
   const handleSubmit = async () => {
-    onSubmit();
     setLoader(true);
+   
     // if (!record) {
     //   return;
     // }
@@ -262,48 +264,64 @@ const GoogleForm = ({ onSubmit }) => {
     });
 
     // Now you have user responses in the desired format
-    // console.log("Formatted Responses:", formattedResponses);
-    setAns(questions);
+    console.log("Formatted Responses:", formattedResponses);
+    setAns(formattedResponses);
     setIsSubmited(true);
     // Send 'formattedResponses' to your server or perform any other necessary actions
 
     // Navigate to the 'Thankyou' screen
     // navigation.navigate(NavigationString.Thankyou);
-    setTimeout(() => {
-      isSubmitedListener();
-    }, 15000);
+    // setTimeout(() => {
+    //   isSubmitedListener();
+    // }, 3000);
+    onSubmit();
+
+    setLoader(false)
   };
 
   useMemo(() => {
     getQuestion();
+   
   }, []);
 
-  const [timer, setTimer] = useState(300); // 5 minutes in seconds
-  const [timerActive, setTimerActive] = useState(true);
 
-  // Function to format seconds into minutes:seconds
-  const formatTime = (timeInSeconds) => {
-    const minutes = Math.floor(timeInSeconds / 60);
-    const seconds = timeInSeconds % 60;
-    return `${minutes.toString().padStart(2, "0")}:${seconds
-      .toString()
-      .padStart(2, "0")}`;
+ 
+
+ // Function to handle timer start
+ const startTimer = useCallback(() => {
+  setTimerActive(true);
+}, []);
+
+// Function to handle timer reset
+const resetTimer = useCallback(() => {
+  setTimer(300); // Reset timer to initial value (5 minutes)
+  setTimerActive(false);
+}, []);
+
+// useEffect for handling timer countdown and cleanup
+useEffect(() => {
+  let intervalId;
+
+  if (timerActive && timer > 0) {
+    intervalId = setInterval(() => {
+      setTimer((prevTimer) => prevTimer - 1);
+    }, 1000);
+  } else if (timer === 0 && timerActive) {
+    onSubmit(); // Automatically hit the submit button after 5 minutes
+    setTimerActive(false);
+  }
+
+  return () => {
+    clearInterval(intervalId); // Cleanup interval when component unmounts or timer resets
   };
+}, [timer, timerActive, onSubmit]);
 
-  // Countdown timer logic
-  useEffect(() => {
-    if (timerActive && timer > 0) {
-      const intervalId = setInterval(() => {
-        setTimer((prevTimer) => prevTimer - 1);
-      }, 1000);
+// useEffect to start the timer when the component is mounted
+useEffect(() => {
+  startTimer(); // You can remove this line if you don't want the timer to start immediately
+  return () => resetTimer(); // Reset the timer when the component unmounts or re-launches
+}, [resetTimer, startTimer]);
 
-      return () => clearInterval(intervalId);
-    } else if (timer === 0 && timerActive) {
-      // Automatically hit the submit button after 5 minutes
-      handleCheckBoxChange();
-      setTimerActive(false);
-    }
-  }, [timer, timerActive, onSubmit]);
   return (
     <ScrollView
       contentContainerStyle={{ paddingVertical: 40, paddingHorizontal: 10 }}
